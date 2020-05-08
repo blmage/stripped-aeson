@@ -1,0 +1,89 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.31.2.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: 214f8ed95cefebcdb792d6b50a8061d896fc41ddf4095bdc68430812b5c769cf
+
+name:           stripped-aeson
+version:        1.0.0
+synopsis:       Type-driven Aeson instance deriving with the ability to strip fields from the output.
+
+description:    A layer around the [deriving-aeson](http://hackage.haskell.org/package/deriving-aeson)
+                package, with the ability to strip one or more fields from the JSON output, and recover
+                them when decoding using some specific defaults.
+category:       JSON, Generics
+homepage:       https://github.com/blmage/stripped-aeson#readme
+bug-reports:    https://github.com/blmage/stripped-aeson/issues
+author:         Benoît Leulliette
+maintainer:     benoit.leulliette@gmail.com
+copyright:      2020 Benoît Leulliette
+license:        MIT
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+
+source-repository head
+  type: git
+  location: https://github.com/blmage/stripped-aeson
+
+library
+  exposed-modules:
+      Deriving.Aeson.Stripped
+  other-modules:
+      Paths_stripped_aeson
+  hs-source-dirs:
+      src
+  build-depends:
+      aeson
+    , base >=4.7 && <5
+    , containers
+    , deriving-aeson
+    , first-class-families >=0.6.0.0
+    , generic-data-surgery >=0.2.1.0
+    , symbols
+    , text
+  default-language: Haskell2010
+
+test-suite stripped-aeson-test
+  type: exitcode-stdio-1.0
+  main-is: Doctest.hs
+  other-modules:
+      Paths_stripped_aeson
+  hs-source-dirs:
+      test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      aeson
+    , base >=4.7 && <5
+    , containers
+    , deriving-aeson
+    , doctest
+    , first-class-families >=0.6.0.0
+    , generic-data-surgery >=0.2.1.0
+    , stripped-aeson
+    , symbols
+    , text
+  default-language: Haskell2010
+
+benchmark stripped-aeson-benchmark
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  other-modules:
+      Paths_stripped_aeson
+  hs-source-dirs:
+      bench
+  build-depends:
+      aeson
+    , base >=4.7 && <5
+    , containers
+    , criterion
+    , deriving-aeson
+    , first-class-families >=0.6.0.0
+    , generic-data-surgery >=0.2.1.0
+    , stripped-aeson
+    , symbols
+    , text
+  default-language: Haskell2010

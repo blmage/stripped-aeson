@@ -1,0 +1,9 @@
+resolver: lts-15.11
+packages:
+- '.'
+extra-deps:
+- deriving-aeson-0.2.4@sha256:c014906d1ba5f73646dd1da9815c3203ba5938210e12f0ce1e5f0d98fa4f64e2,1277
+- generic-data-surgery-0.2.1.0@sha256:12dd6af95b8d5aac32bd86c51c0e934072476ab3d45305c859b258dd815c6330,1272
+- symbols-0.3.0.0@sha256:5d051bccbd4bcb33fa8ce076bd3cd2bacc90973682f7340976758947eaa128a9,964
+flags: {}
+extra-package-dbs: []

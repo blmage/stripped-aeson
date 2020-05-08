@@ -1,0 +1,56 @@
+name:                stripped-aeson
+version:             1.0.0
+github:              "blmage/stripped-aeson"
+license:             MIT
+author:              "Benoît Leulliette"
+maintainer:          "benoit.leulliette@gmail.com"
+copyright:           "2020 Benoît Leulliette"
+
+extra-source-files:
+- README.md
+
+category:            JSON, Generics
+synopsis: |
+  Type-driven Aeson instance deriving with the ability to strip fields from the output.
+description: |
+  A layer around the [deriving-aeson](http://hackage.haskell.org/package/deriving-aeson)
+  package, with the ability to strip one or more fields from the JSON output, and recover
+  them when decoding using some specific defaults.
+
+dependencies:
+- aeson
+- base >= 4.7 && < 5
+- containers
+- deriving-aeson
+- first-class-families >= 0.6.0.0
+- generic-data-surgery >= 0.2.1.0
+- symbols
+- text
+
+library:
+  source-dirs: src
+
+tests:
+  stripped-aeson-test:
+    main:                Doctest.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - containers
+    - doctest
+    - stripped-aeson
+    - text
+
+benchmarks:
+  stripped-aeson-benchmark:
+    main:                Main.hs
+    source-dirs:         bench
+    dependencies:
+    - aeson
+    - containers
+    - criterion
+    - stripped-aeson
+    - text
