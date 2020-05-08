@@ -1,5 +1,7 @@
 # stripped-aeson
 
+[![GitHub CI](https://github.com/blmage/stripped-aeson/workflows/CI/badge.svg)](https://github.com/blmage/stripped-aeson/actions)
+
 A layer around the [deriving-aeson](http://hackage.haskell.org/package/deriving-aeson)
 package, with the ability to strip one or more fields from the JSON output, and recover
 them when decoding using some specified defaults.
