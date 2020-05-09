@@ -2,13 +2,16 @@
 
 [![GitHub CI](https://github.com/blmage/stripped-aeson/workflows/CI/badge.svg)](https://github.com/blmage/stripped-aeson/actions)
 
-A layer around the [deriving-aeson](http://hackage.haskell.org/package/deriving-aeson)
+A layer around the [deriving-aeson](https://hackage.haskell.org/package/deriving-aeson)
 package, with the ability to strip one or more fields from the JSON output, and recover
 them when decoding using some specified defaults.
 
 ### Usage
 
-Because an example speaks more than a thousand words, have a look at this example `Main`:
+#### Example
+
+Because an example speaks more than a thousand words, let's start by having
+a look at this `Main` module:
 
 ```haskell
 {-# LANGUAGE DataKinds                  #-}
@@ -73,3 +76,38 @@ Upon running the corresponding executable, you should get this output :
 # And recovering them later:
 Just (RecordTest {testBool = False, testNumber = 7, testNewtype = 42, testString = "string", testIsString = "text", testList = [10,11,12], testIsList = fromList [13,14], testMonoid = EQ, testValue = 3.14})
 ```
+
+#### How does it work? The core type: `StrippedJSON` (and the others)
+
+This package revolves entirely around the
+[`StrippedJSON`](https://blmage.github.io/stripped-aeson/Deriving-Aeson-Stripped.html#t:StrippedJSON)
+newtype, which takes two type parameters:
+
+* a list of instructions indicating which fields should be removed, and how they should
+  be recovered:
+
+  | Instruction | Use for | Field identifier |
+  | ----------- | ------- | ---------------- |
+  | [`RField`](https://blmage.github.io/stripped-aeson/Deriving-Aeson-Stripped.html#t:RField) | record values | name |
+  | [`CField`](https://blmage.github.io/stripped-aeson/Deriving-Aeson-Stripped.html#t:CField) | non-record single-constructor values | **zero-based** position |  
+
+  Each instruction takes a **field identifier** and a **default value** used to recover
+  the field when decoding.
+
+  See the
+  [`RecoverableValue`](https://blmage.github.io/stripped-aeson/Deriving-Aeson-Stripped.html#t:RecoverableValue)
+  instances for examples of what can be used as default values. Or don't hesitate to
+  roll your own! (PRs welcome!)
+
+* a list of
+  [`AesonOptions`](https://hackage.haskell.org/package/deriving-aeson/docs/Deriving-Aeson.html#t:AesonOptions)
+  indicating how to customize the JSON output.
+
+  This works exactly the same as the only parameter to 
+  [`CustomJSON`](https://hackage.haskell.org/package/deriving-aeson/docs/Deriving-Aeson.html#t:CustomJSON)
+  from the [deriving-aeson](https://hackage.haskell.org/package/deriving-aeson) package.
+
+#### Haddock documentation
+
+The Haddock documentation for the package is available
+[here](https://blmage.github.io/stripped-aeson/index.html).
