@@ -1,16 +1,16 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.31.2.
+-- This file has been generated from package.yaml by hpack version 0.33.0.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 214f8ed95cefebcdb792d6b50a8061d896fc41ddf4095bdc68430812b5c769cf
+-- hash: 371a1a6867156bea28c78e6e9a96d0e2a050ae1b613107f3f90db99968fe00fb
 
 name:           stripped-aeson
 version:        1.0.0
 synopsis:       Type-driven Aeson instance deriving with the ability to strip fields from the output.
 
-description:    A layer around the [deriving-aeson](http://hackage.haskell.org/package/deriving-aeson)
+description:    A layer around the [deriving-aeson](https://hackage.haskell.org/package/deriving-aeson)
                 package, with the ability to strip one or more fields from the JSON output, and recover
                 them when decoding using some specific defaults.
 category:       JSON, Generics
