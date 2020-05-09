@@ -152,7 +152,7 @@ instance
         = stripFields @lt' @fds . snd . removeRField @name
 
     recoverFields
-        = insertRField' @name (recoverableValue $ Proxy @def)
+        = insertRField' @name (recoverValue $ Proxy @def)
         . recoverFields @lt' @fds
 
 instance
@@ -169,7 +169,7 @@ instance
         . removeCField @idx
 
     recoverFields
-        = insertCField' @idx (recoverableValue $ Proxy @def)
+        = insertCField' @idx (recoverValue $ Proxy @def)
         . recoverFields @lt' @fds'
 
 
@@ -187,42 +187,57 @@ type family DecrementAllAfter (idx :: Nat) (fds :: [Type]) :: [Type] where
 
 
 -- | Recovers a value by 'coerce'-ing it from another 'RecoverableValue'.
+--
+-- >>> recoverValue (Proxy @(Coerce 7 Int)) :: WrappedInt
+-- WrappedInt 7
 data Coerce (x :: k) (a :: Type)
 
 -- | Recovers a 'String'-like value using 'fromString' from 'IsString'.
+--
+-- >>> recoverValue (Proxy @(FromString "text")) :: Text
+-- "text"
 data FromString (s :: Symbol)
 
 -- | Recovers a list-like value using 'fromList' from 'IsList'.
+--
+-- >>> recoverValue (Proxy @(FromList '[1,2,3])) :: [Int]
+-- [1,2,3]
 data FromList (xs :: [k])
 
 -- | Recovers a 'Monoid' value using 'mempty'.
+--
+-- >>> recoverValue (Proxy @(Pure 1)) :: Maybe Int
+-- Just 1
 data Mempty
 
 -- | Recovers an 'Applicative' value using 'pure'.
+--
+-- >>> recoverValue (Proxy @(Pure 1)) :: Maybe Int
+-- Just 1
 data Pure (x :: k)
 
 
 -- | A default field value which can be recovered at decode-time.
 class RecoverableValue (x :: k) (a :: Type) where
     -- | Recovers a default field value from the type-level.
-    recoverableValue :: Proxy x -> a
+    recoverValue :: Proxy x -> a
 
 
 instance RecoverableValue '() () where
-    recoverableValue _ = ()
-    {-# INLINE recoverableValue #-}
+    recoverValue _ = ()
+    {-# INLINE recoverValue #-}
 
 instance RecoverableValue 'False Bool where
-    recoverableValue _ = False
-    {-# INLINE recoverableValue #-}
+    recoverValue _ = False
+    {-# INLINE recoverValue #-}
 
 instance RecoverableValue 'True Bool where
-    recoverableValue _ = True
-    {-# INLINE recoverableValue #-}
+    recoverValue _ = True
+    {-# INLINE recoverValue #-}
 
 instance (KnownNat n, Num a) => RecoverableValue (n :: Nat) a where
-    recoverableValue = fromIntegral . natVal
-    {-# INLINE recoverableValue #-}
+    recoverValue = fromIntegral . natVal
+    {-# INLINE recoverValue #-}
 
 -- | A constraint for requiring a 'Symbol' to represent a valid ASCII 'Char'.
 type IsValidChar char =
@@ -237,67 +252,67 @@ type IsValidChar char =
     )
 
 instance IsValidChar c => RecoverableValue (c :: Symbol) Char where
-    recoverableValue = head . recoverableValue
-    {-# INLINE recoverableValue #-}
+    recoverValue = head . recoverValue
+    {-# INLINE recoverValue #-}
 
 instance KnownSymbol s => RecoverableValue (s :: Symbol) String where
-    recoverableValue = symbolVal
-    {-# INLINE recoverableValue #-}
+    recoverValue = symbolVal
+    {-# INLINE recoverValue #-}
 
 instance (KnownSymbol s, IsString a) => RecoverableValue (FromString s) a where
-    recoverableValue _ = fromString $ symbolVal $ Proxy @s
-    {-# INLINE recoverableValue #-}
+    recoverValue _ = fromString $ symbolVal $ Proxy @s
+    {-# INLINE recoverValue #-}
 
 instance RecoverableValue '[] [a] where
-    recoverableValue _ = []
-    {-# INLINE recoverableValue #-}
+    recoverValue _ = []
+    {-# INLINE recoverValue #-}
 
 instance
        ( RecoverableValue x a
        , RecoverableValue xs [a]
        )
     => RecoverableValue (x ': xs) [a] where
-    recoverableValue _ = recoverableValue (Proxy @x) : recoverableValue (Proxy @xs)
-    {-# INLINE recoverableValue #-}
+    recoverValue _ = recoverValue (Proxy @x) : recoverValue (Proxy @xs)
+    {-# INLINE recoverValue #-}
 
 instance (Coercible a b, RecoverableValue x a) => RecoverableValue (Coerce x a) b where
-    recoverableValue _ = coerce @a @b $ recoverableValue $ Proxy @x
-    {-# INLINE recoverableValue #-}
+    recoverValue _ = coerce @a @b $ recoverValue $ Proxy @x
+    {-# INLINE recoverValue #-}
 
 instance
        ( IsList a
        , RecoverableValue xs [Item a]
        )
     => RecoverableValue (FromList xs) a where
-    recoverableValue _ = fromList $ recoverableValue $ Proxy @xs
-    {-# INLINE recoverableValue #-}
+    recoverValue _ = fromList $ recoverValue $ Proxy @xs
+    {-# INLINE recoverValue #-}
 
 instance RecoverableValue 'Nothing (Maybe a) where
-    recoverableValue _ = Nothing
-    {-# INLINE recoverableValue #-}
+    recoverValue _ = Nothing
+    {-# INLINE recoverValue #-}
 
 instance RecoverableValue x a => RecoverableValue ('Just x) (Maybe a) where
-    recoverableValue _ = Just $ recoverableValue $ Proxy @x
-    {-# INLINE recoverableValue #-}
+    recoverValue _ = Just $ recoverValue $ Proxy @x
+    {-# INLINE recoverValue #-}
 
 instance RecoverableValue x e => RecoverableValue ('Left x) (Either e a) where
-    recoverableValue _ = Left $ recoverableValue $ Proxy @x
-    {-# INLINE recoverableValue #-}
+    recoverValue _ = Left $ recoverValue $ Proxy @x
+    {-# INLINE recoverValue #-}
 
 instance RecoverableValue x a => RecoverableValue ('Right x) (Either e a) where
-    recoverableValue _ = Right $ recoverableValue $ Proxy @x
-    {-# INLINE recoverableValue #-}
+    recoverValue _ = Right $ recoverValue $ Proxy @x
+    {-# INLINE recoverValue #-}
 
 instance
        ( RecoverableValue x a
        , RecoverableValue y b
        )
     => RecoverableValue '(x, y) (a, b) where
-    recoverableValue _ =
-        ( recoverableValue $ Proxy @x
-        , recoverableValue $ Proxy @y
+    recoverValue _ =
+        ( recoverValue $ Proxy @x
+        , recoverValue $ Proxy @y
         )
-    {-# INLINE recoverableValue #-}
+    {-# INLINE recoverValue #-}
 
 instance
        ( RecoverableValue x a
@@ -305,12 +320,12 @@ instance
        , RecoverableValue z c
        )
     => RecoverableValue '(x, y, z) (a, b, c) where
-    recoverableValue _ =
-        ( recoverableValue $ Proxy @x
-        , recoverableValue $ Proxy @y
-        , recoverableValue $ Proxy @z
+    recoverValue _ =
+        ( recoverValue $ Proxy @x
+        , recoverValue $ Proxy @y
+        , recoverValue $ Proxy @z
         )
-    {-# INLINE recoverableValue #-}
+    {-# INLINE recoverValue #-}
 
 instance
        ( RecoverableValue w a
@@ -319,13 +334,13 @@ instance
        , RecoverableValue z d
        )
     => RecoverableValue '(w, x, y, z) (a, b, c, d) where
-    recoverableValue _ =
-        ( recoverableValue $ Proxy @w
-        , recoverableValue $ Proxy @x
-        , recoverableValue $ Proxy @y
-        , recoverableValue $ Proxy @z
+    recoverValue _ =
+        ( recoverValue $ Proxy @w
+        , recoverValue $ Proxy @x
+        , recoverValue $ Proxy @y
+        , recoverValue $ Proxy @z
         )
-    {-# INLINE recoverableValue #-}
+    {-# INLINE recoverValue #-}
 
 instance
        ( RecoverableValue v a
@@ -335,14 +350,14 @@ instance
        , RecoverableValue z e
        )
     => RecoverableValue '(v, w, x, y, z) (a, b, c, d, e) where
-    recoverableValue _ =
-        ( recoverableValue $ Proxy @v
-        , recoverableValue $ Proxy @w
-        , recoverableValue $ Proxy @x
-        , recoverableValue $ Proxy @y
-        , recoverableValue $ Proxy @z
+    recoverValue _ =
+        ( recoverValue $ Proxy @v
+        , recoverValue $ Proxy @w
+        , recoverValue $ Proxy @x
+        , recoverValue $ Proxy @y
+        , recoverValue $ Proxy @z
         )
-    {-# INLINE recoverableValue #-}
+    {-# INLINE recoverValue #-}
 
 instance
        ( RecoverableValue u a
@@ -353,23 +368,23 @@ instance
        , RecoverableValue z f
        )
     => RecoverableValue '(u, v, w, x, y, z) (a, b, c, d, e, f) where
-    recoverableValue _ =
-        ( recoverableValue $ Proxy @u
-        , recoverableValue $ Proxy @v
-        , recoverableValue $ Proxy @w
-        , recoverableValue $ Proxy @x
-        , recoverableValue $ Proxy @y
-        , recoverableValue $ Proxy @z
+    recoverValue _ =
+        ( recoverValue $ Proxy @u
+        , recoverValue $ Proxy @v
+        , recoverValue $ Proxy @w
+        , recoverValue $ Proxy @x
+        , recoverValue $ Proxy @y
+        , recoverValue $ Proxy @z
         )
-    {-# INLINE recoverableValue #-}
+    {-# INLINE recoverValue #-}
 
 instance (Applicative f, RecoverableValue x a) => RecoverableValue (Pure x) (f a) where
-    recoverableValue _ = pure $ recoverableValue $ Proxy @x
-    {-# INLINE recoverableValue #-}
+    recoverValue _ = pure $ recoverValue $ Proxy @x
+    {-# INLINE recoverValue #-}
 
 instance Monoid m => RecoverableValue Mempty m where
-    recoverableValue _ = mempty
-    {-# INLINE recoverableValue #-}
+    recoverValue _ = mempty
+    {-# INLINE recoverValue #-}
 
 
 -- $presentation
@@ -384,7 +399,7 @@ instance Monoid m => RecoverableValue Mempty m where
 --
 -- === Setup
 --
--- All the examples below are based on the following setup code:
+-- All the examples on this page are based on the following setup code:
 --
 -- >>> :set -XDataKinds
 -- >>> :set -XDeriveGeneric
