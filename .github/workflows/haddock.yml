@@ -1,0 +1,56 @@
+name: Haddock
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - '**.cabal'
+      - '**.hs'
+
+jobs:
+  haddock:
+    name: ${{ matrix.os }} / ghc ${{ matrix.ghc }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        cabal: ["3.2"]
+        ghc: ["8.10.1"]
+    steps:
+    - uses: actions/checkout@v2
+      if: github.event.action == 'opened' || github.event.action == 'synchronize' || github.event.ref == 'refs/heads/master'
+
+    - uses: actions/setup-haskell@v1.1
+      id: setup-haskell-cabal
+      name: Setup Haskell
+      with:
+        ghc-version: ${{ matrix.ghc }}
+        cabal-version: ${{ matrix.cabal }}
+
+    - uses: actions/cache@v1
+      name: Cache cabal-store
+      with:
+        path: ${{ steps.setup-haskell-cabal.outputs.cabal-store }}
+        key: ${{ runner.os }}-${{ matrix.ghc }}-cabal
+
+    - name: Build
+      run: |
+        cabal update
+        mkdir -p docs
+        find docs -mindepth 1 -delete
+        haddock_index=$(cabal v2-haddock --enable-documentation --haddock-hyperlink-source --haddock-quickjump --haddock-html-location='https://hackage.haskell.org/package/$pkg-$version/docs' | tail -1)
+        haddock_dir=$(dirname $haddock_index)
+        cp -R $haddock_dir/* docs
+
+    - name: Commit
+      run: |
+        cd docs
+        git add .
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git commit -m "CI: Update documentation" | exit 0
+    
+    - name: Push
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
