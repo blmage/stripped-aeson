@@ -1,12 +1,10 @@
 {-# LANGUAGE AllowAmbiguousTypes    #-}
 {-# LANGUAGE ConstraintKinds        #-}
 {-# LANGUAGE DataKinds              #-}
-{-# LANGUAGE DeriveGeneric          #-}
 {-# LANGUAGE DerivingVia            #-}
 {-# LANGUAGE FlexibleContexts       #-}
 {-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE PolyKinds              #-}
 {-# LANGUAGE RankNTypes             #-}
 {-# LANGUAGE ScopedTypeVariables    #-}
@@ -60,7 +58,7 @@ import GHC.Exts (IsList (..))
 import GHC.Generics (Generic, Rep)
 import GHC.TypeLits (CmpSymbol, KnownNat, KnownSymbol, Nat, Symbol, natVal, symbolVal)
 
-import qualified Fcf as Fcf
+import qualified Fcf
 import qualified GHC.TypeLits as Error
 
 

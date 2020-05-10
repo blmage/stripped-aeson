@@ -30,7 +30,7 @@ data RecordTest = RecordTest
     , testString   :: String
     , testIsString :: !Text
     , testList     :: ![Int]
-    , testIsList   :: (Set.Set Int)
+    , testIsList   :: Set.Set Int
     , testMonoid   :: ![Int]
     }
     deriving (Generic)
