@@ -62,9 +62,10 @@ import qualified Fcf
 import qualified GHC.TypeLits as Error
 
 
--- | A newtype wrapper which provides 'FromJSON' / 'ToJSON' instances with a specific set
--- of 'Options' (see the "Deriving.Aeson" module), and the ability to strip one or more
--- fields from the JSON output, recovered at decode-time using some default values.
+-- | A newtype wrapper which provides 'FromJSON' / 'ToJSON' instances based on a specific
+-- set of 'AesonOptions' (see the "Deriving.Aeson" module), and the ability to strip one
+-- or more fields from the JSON output, recovered when decoding using some default
+-- `RecoverableValue`s.
 newtype StrippedJSON (fds :: [Type]) (opts :: [Type]) a
     = StrippedJSON { unStrippedJSON :: a }
 
@@ -113,13 +114,13 @@ instance
 
 -- | A field to be stripped from record values, identified by its @name@.
 --
--- The @def@ value is used to recover the field at decode-time (see 'RecoverableValue').
+-- The @def@ value is used to recover the field when decoding (see 'RecoverableValue').
 data RField (name :: Symbol) (def :: k)
 
 -- | A field to be stripped from non-record single-constructor values,
 -- identified by its __zero-based__ @position@ in the data constructor.
 --
--- The @def@ value is used to recover the field at decode-time (see 'RecoverableValue').
+-- The @def@ value is used to recover the field when decoding (see 'RecoverableValue').
 data CField (position :: Nat) (def :: k)
 
 
@@ -204,8 +205,8 @@ data FromList (xs :: [k])
 
 -- | Recovers a 'Monoid' value using 'mempty'.
 --
--- >>> recoverValue (Proxy @(Pure 1)) :: Maybe Int
--- Just 1
+-- >>> recoverValue (Proxy @Mempty) :: [Int]
+-- []
 data Mempty
 
 -- | Recovers an 'Applicative' value using 'pure'.
@@ -215,7 +216,7 @@ data Mempty
 data Pure (x :: k)
 
 
--- | A default field value which can be recovered at decode-time.
+-- | A default field value which can be recovered when decoding.
 class RecoverableValue (x :: k) (a :: Type) where
     -- | Recovers a default field value from the type-level.
     recoverValue :: Proxy x -> a
@@ -401,6 +402,7 @@ instance Monoid m => RecoverableValue Mempty m where
 --
 -- >>> :set -XDataKinds
 -- >>> :set -XDeriveGeneric
+-- >>> :set -XDerivingVia
 -- >>> :set -XGeneralizedNewtypeDeriving
 -- >>> :set -XOverloadedStrings
 -- >>> :set -XTypeApplications
@@ -418,94 +420,82 @@ instance Monoid m => RecoverableValue Mempty m where
 --
 -- >>> :{
 --  data RecordTest = RecordTest
---      { testNumber   :: {-# UNPACK #-} !Int
+--      { testBool     :: !Bool
+--      , testNumber   :: {-# UNPACK #-} !Int
 --      , testNewtype  :: !WrappedInt
 --      , testString   :: String
 --      , testIsString :: !Text
 --      , testList     :: ![Int]
---      , testIsList   :: (Set.Set Int)
---      , testMonoid   :: ![Int]
+--      , testIsList   :: Set.Set Int
+--      , testMonoid   :: !Ordering
+--      , testValue    :: Double
 --      }
 --      deriving (Generic, Show)
+--      deriving (FromJSON, ToJSON)
+--          via StrippedJSON
+--              '[ RField "testBool"     'False
+--               , RField "testIsList"   (FromList '[ 13, 14, 13 ])
+--               , RField "testIsString" (FromString "text")
+--               , RField "testList"     '[ 10, 11, 12 ]
+--               , RField "testMonoid"   Mempty
+--               , RField "testNewtype"  (Coerce 42 Int)
+--               , RField "testNumber"   7
+--               , RField "testString"   "string"
+--               ]
+--              '[]
+--              RecordTest
 -- :}
 --
--- >>> :{
---  type StrippedRecordFields =
---      '[ RField "testNumber"   7
---       , RField "testNewtype"  (Coerce 42 Int)
---       , RField "testString"   "string"
---       , RField "testIsString" (FromString "text")
---       , RField "testList"     '[ 10, 11, 12 ]
---       , RField "testIsList"   (FromList '[ 13, 14, 13 ])
---       , RField "testMonoid"   Mempty
---       ]
--- :}
+-- Note that the order of the `RField` instructions does not matter ..
+--
+-- >>> let recordTest = RecordTest True 1 (WrappedInt 2) "s" "t" [1..3] (Set.fromList [4..6]) GT 3.14
 --
 -- >>> :{
 --  data NonRecordTest
---      = NonRecordTest (Either String Int) (Maybe Int) ![Int] (Bool, Char, Int)
+--      = NonRecordTest () (Either String Int) (Maybe Int) ![Int] (Bool, Char, Int)
 --      deriving (Generic, Show)
+--      deriving (FromJSON, ToJSON)
+--          via StrippedJSON
+--              '[ CField 0 '()
+--               , CField 1 ('Left "test")
+--               , CField 3 (Pure 7)
+--               , CField 2 'Nothing
+--               , CField 4 '( 'False, "z", 42 )
+--               ]
+--              '[]
+--              NonRecordTest
 -- :}
 --
--- >>> :{
---  type StrippedNonRecordFields =
---      '[ CField 0 ('Left "test")
---       , CField 2 (Pure 7)
---       , CField 1 'Nothing
---       , CField 3 '( 'False, "z", 42 )
---       ]
--- :}
+-- .. nor does the order of the `CField` instructions.
+--
+-- >>> let nonRecordTest = NonRecordTest () (Right 1) (Just 2) [3..5] (True, 'a', 6)
 
 -- $examples
 --
 -- === Stripping fields in a record value: ..
 --
--- >>> :{
---  encode
---      $ StrippedJSON @StrippedRecordFields @'[]
---      $ RecordTest 1 (WrappedInt 2) "s" "t" [1..3] (Set.fromList [4..6]) [7..9]
--- :}
--- "[]"
+-- >>> encode recordTest
+-- "{\"testValue\":3.14}"
 --
 -- === .. and recovering them when decoding using the specified defaults:
 --
--- >>> :{
---  fmap unStrippedJSON
---      $ decode @(StrippedJSON StrippedRecordFields '[] RecordTest)
---      $ encode
---      $ StrippedJSON @StrippedRecordFields @'[]
---      $ RecordTest 1 (WrappedInt 2) "s" "t" [1..3] (Set.fromList [4..6]) [7..9]
--- :}
--- Just (RecordTest {testNumber = 7, testNewtype = WrappedInt 42, testString = "string", testIsString = "text", testList = [10,11,12], testIsList = fromList [13,14], testMonoid = []})
+-- >>> decode @RecordTest $ encode recordTest
+-- Just (RecordTest {testBool = False, testNumber = 7, testNewtype = WrappedInt 42, testString = "string", testIsString = "text", testList = [10,11,12], testIsList = fromList [13,14], testMonoid = EQ, testValue = 3.14})
 --
 -- === Stripping fields in a non-record value: ..
--- >>> :{
---  encode
---      $ StrippedJSON @StrippedNonRecordFields @'[]
---      $ NonRecordTest (Right 1) (Just 2) [3..5] (True, 'a', 6)
--- :}
+-- >>> encode nonRecordTest
 -- "[]"
 --
 -- === .. and recovering them when decoding using the specified defaults:
 --
--- >>> :{
---  fmap unStrippedJSON
---      $ decode @(StrippedJSON StrippedNonRecordFields '[] NonRecordTest)
---      $ encode
---      $ StrippedJSON @StrippedNonRecordFields @'[]
---      $ NonRecordTest (Right 1) (Just 2) [3..5] (True, 'a', 6)
--- :}
--- Just (NonRecordTest (Left "test") Nothing [7] (False,'z',42))
+-- >>> decode @NonRecordTest $ encode nonRecordTest
+-- Just (NonRecordTest () (Left "test") Nothing [7] (False,'z',42))
 --
 -- === Specifying encoding / decoding options:
 --
 -- The second parameter to 'StrippedJSON' works exactly the same as the only parameter
--- to 'CustomJSON' (from the
--- [deriving-aeson](http://hackage.haskell.org/package/deriving-aeson) package).
+-- to 'CustomJSON' from the
+-- [deriving-aeson](http://hackage.haskell.org/package/deriving-aeson) package.
 --
--- >>> :{
---  encode
---      $ StrippedJSON @'[] @'[ FieldLabelModifier CamelToSnake ]
---      $ RecordTest 1 (WrappedInt 2) "s" "t" [1..3] (Set.fromList [4..6]) [7..9]
--- :}
--- "{\"test_number\":1,\"test_newtype\":2,\"test_string\":\"s\",\"test_is_string\":\"t\",\"test_list\":[1,2,3],\"test_is_list\":[4,5,6],\"test_monoid\":[7,8,9]}"
+-- >>> encode $ StrippedJSON @'[] @'[ FieldLabelModifier CamelToSnake ] recordTest
+-- "{\"test_bool\":true,\"test_number\":1,\"test_newtype\":2,\"test_string\":\"s\",\"test_is_string\":\"t\",\"test_list\":[1,2,3],\"test_is_list\":[4,5,6],\"test_monoid\":\"GT\",\"test_value\":3.14}"
