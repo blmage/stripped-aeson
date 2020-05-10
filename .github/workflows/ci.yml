@@ -7,7 +7,7 @@ on:
 
 jobs:
   cabal:
-    name: ${{ matrix.os }} / ghc ${{ matrix.ghc }}
+    name: cabal / ${{ matrix.os }} / ghc ${{ matrix.ghc }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -108,14 +108,15 @@ jobs:
       name: Cache ~/.stack
       with:
         path: ~/.stack
-        key: ${{ runner.os }}-${{ matrix.ghc }}-stack
+        key: ${{ runner.os }}-${{ matrix.ghc }}-lint
 
     - name: Build
       run: |
-        stack build --system-ghc --test --bench --no-run-tests --no-run-benchmarks
+        stack build --test --bench --no-run-tests --no-run-benchmarks --resolver=nightly
 
     - name: Lint
       run: |
+        PATH=$HOME/.local/bin:$PATH
         stack install hlint --resolver=nightly
         hlint .
         stack install weeder --resolver=nightly
